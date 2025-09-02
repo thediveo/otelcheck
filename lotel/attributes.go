@@ -26,18 +26,28 @@ type attributeMatcher interface {
 	matchAttribute(log.KeyValue) (bool, error)
 }
 
-// matchAllAttributes succeeds if the attributes of the passed log record match
-// all passed attribute matchers.
+// matchAllAttributes succeeds if the passed attribute matchers all match at
+// least some of the passed log record attributes.
 func matchAllAttributes(r *sdklog.Record, ms []attributeMatcher) (bool, error) {
+	ms = ms[:]
+nextAttr:
 	for attr := range r.WalkAttributes /* sweet iterator */ {
-		for _, m := range ms {
+		if len(ms) == 0 {
+			return true, nil
+		}
+		for midx, m := range ms {
 			success, err := m.matchAttribute(attr)
-			if err != nil || !success {
+			if err != nil {
 				return false, err
+			}
+			if success {
+				ms[midx] = ms[len(ms)-1]
+				ms = ms[:len(ms)-1]
+				continue nextAttr
 			}
 		}
 	}
-	return true, nil
+	return len(ms) == 0, nil
 }
 
 // separateAttributeMatchers separates a list of matchers into a list of

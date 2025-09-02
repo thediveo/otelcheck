@@ -18,9 +18,10 @@ import (
 	"go.opentelemetry.io/otel/log"
 	"go.opentelemetry.io/otel/sdk/log/logtest"
 
+	"github.com/thediveo/otelcheck/lotel/logconv"
+
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"github.com/thediveo/otelcheck/lotel/logconv"
 )
 
 var _ = Describe("BeARecord matcher", func() {
@@ -46,13 +47,17 @@ var _ = Describe("BeARecord matcher", func() {
 		Expect(m.Match(r)).To(BeFalse())
 	})
 
-	It("matches attributes", func() {
+	It("asserts all attributes", func() {
 		r := logtest.RecordFactory{
-			Attributes: []log.KeyValue{{Key: "foo", Value: logconv.Value("bar")}},
+			Attributes: []log.KeyValue{{Key: "foo", Value: logconv.Value("bar")}, {Key: "bar"}},
 		}.NewRecord()
 		Expect(r).To(BeARecord(HaveAttribute("foo")))
 		Expect(r).To(BeARecord(HaveAttribute("foo=bar")))
-		Expect(r).NotTo(BeARecord(HaveAttribute("foo"), HaveAttribute("bar")))
+		Expect(r).To(BeARecord(HaveAttribute("foo"), HaveAttribute("bar")))
+		Expect(r).NotTo(BeARecord(HaveAttribute("baz")))
+		// attribute non-existance assertion (un-assertion?) is not recommended,
+		// yet should still work correctly
+		Expect(r).To(BeARecord(HaveAttribute("foo"), Not(HaveAttribute("baz"))))
 	})
 
 })

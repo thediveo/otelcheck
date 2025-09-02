@@ -20,6 +20,7 @@ import (
 	"strings"
 
 	"go.opentelemetry.io/otel/log"
+	sdklog "go.opentelemetry.io/otel/sdk/log"
 
 	"github.com/thediveo/otelcheck/lotel/logconv"
 
@@ -32,7 +33,8 @@ import (
 //
 // The expected value passed into the attr parameter can be either a string or
 // [ty.GomegaMatcher]:
-//   - a string in the form of “name” where it must match an attribute key/name, or
+//   - a string in the form of “name” where it must match an attribute key/name
+//     (but not any value), or
 //     in the “name=value” form where it must match both the attribute key/name and
 //     value. Please note that the “name=value” form matches attribute string values
 //     only. Use [HaveAttributeWIthValue] instead to match attributes with empty
@@ -40,12 +42,12 @@ import (
 //   - a GomegaMatcher that matches the name only.
 //   - any other type of value is an error.
 //
-// HaveAttribute accepts actual values of types [log.KeyValue] and
+// HaveAttribute accepts actual values of types [log.KeyValue] and also
 // [sdklog.Record]. When actual is a log record as opposed to a key-value pair,
 // HaveAttribute matches against the attribute set of this log record. However,
 // it is recommended to use HaveAttribute only in the context of BeARecord,
 // especially when asserting the presence of multiple attributes, as BeARecord
-// optimizes the attributes checks.
+// optimizes its attributes checks.
 //
 // Usage examples:
 //
@@ -83,7 +85,7 @@ func HaveAttribute(attr any) ty.GomegaMatcher {
 // The value passed into the name parameter can be either a string or a
 // [ty.GomegaMatcher].
 //
-// HaveAttributeWithValue accepts actual values of types [log.KeyValue] and
+// HaveAttributeWithValue accepts actual values of types [log.KeyValue] and also
 // [sdklog.Record]. When actual is a log record as opposed to a key-value pair,
 // HaveAttributeWithValue matches against the attribute set of this log record.
 // However, it is recommended to use HaveAttributeWithValue only in the context
@@ -154,10 +156,19 @@ func (m *HaveAttributeMatcher) Match(actual any) (success bool, err error) {
 	if actual == nil {
 		return false, errors.New("refusing to match <nil>")
 	}
+	r, ok := actual.(sdklog.Record)
+	if ok {
+		for attr := range r.WalkAttributes {
+			if success, err := m.matchAttribute(attr); err != nil || success {
+				return success, err
+			}
+		}
+		return false, nil
+	}
 	attr, ok := actual.(log.KeyValue)
 	if !ok {
-		return false, fmt.Errorf("HaveAttribute expected actual of type <%T>.  Got:\n%s",
-			log.KeyValue{}, format.Object(actual, 1))
+		return false, fmt.Errorf("HaveAttribute expected actual of type <%T> or <%T>.  Got:\n%s",
+			log.KeyValue{}, sdklog.Record{}, format.Object(actual, 1))
 	}
 	return m.matchAttribute(attr)
 }
