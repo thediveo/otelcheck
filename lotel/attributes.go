@@ -23,6 +23,8 @@ import (
 
 // attributeMatcher marks a Gomega matcher to match OTel log record attributes.
 type attributeMatcher interface {
+	// try to match a log record attribute (as opposed to matching a log
+	// record's resource or instrumentation/scope attribute).
 	matchAttribute(log.KeyValue) (bool, error)
 }
 
@@ -63,18 +65,4 @@ func separateAttributeMatchers(ms []ty.GomegaMatcher) ([]ty.GomegaMatcher, []att
 		gms = append(gms, m)
 	}
 	return gms, ams
-}
-
-func wrapAttributeMatcher(m ty.GomegaMatcher) ty.GomegaMatcher {
-	return &wrappedMatcher{m}
-}
-
-type wrappedMatcher struct {
-	ty.GomegaMatcher
-}
-
-var _ (attributeMatcher) = (*wrappedMatcher)(nil)
-
-func (m *wrappedMatcher) matchAttribute(attr log.KeyValue) (bool, error) {
-	return m.Match(attr)
 }

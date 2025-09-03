@@ -61,22 +61,22 @@ func HaveAttribute(attr any) ty.GomegaMatcher {
 		// single plain string argument, so let's see if it is in "NAME=VALUE"
 		// format...
 		if nam, value, found := strings.Cut(s, "="); found {
-			return wrapAttributeMatcher(&HaveAttributeMatcher{
+			return &HaveAttributeMatcher{
 				name:         nam,
 				value:        value,
 				nameMatcher:  matcherOrEqual(nam),
 				valueMatcher: matcherOrEqual(value),
-			})
+			}
 		}
 		// it's just "NAME", so we want to match only the name, not the value;
 		// fall through now.
 	}
-	return wrapAttributeMatcher(&HaveAttributeMatcher{
+	return &HaveAttributeMatcher{
 		name:         attr,
 		value:        nil,
 		nameMatcher:  matcherOrEqual(attr),
 		valueMatcher: nil,
-	})
+	}
 }
 
 // HaveAttributeWithValue succeeds if an OpenTelemetry log record has an
@@ -113,12 +113,12 @@ func HaveAttribute(attr any) ty.GomegaMatcher {
 //
 // See also [HaveAttribute].
 func HaveAttributeWithValue(name, value any) ty.GomegaMatcher {
-	return wrapAttributeMatcher(&HaveAttributeMatcher{
+	return &HaveAttributeMatcher{
 		name:         name,
 		value:        value,
 		nameMatcher:  matcherOrEqual(name),
 		valueMatcher: matcherOrEqualNilInclusive(value, logconv.Canonize),
-	})
+	}
 
 }
 
