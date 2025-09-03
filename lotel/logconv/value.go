@@ -68,9 +68,22 @@ func anyMap(v log.Value) map[string]any {
 }
 
 // Canonize an any value to the allowed OpenTelemetry log.Value types by
-// (recursively) promoting int to int64 and float32 to float64.
+// (recursively) promoting int to int64 and float32 to float64 (including in
+// slice and map elements).
 //
-// Canonize panics when any value encountered is not of the following types:
+// Please note that the homogeneous slices of []bool, []int, []int64, []float32,
+// []float64 and []string are “canonized” to []any. This allows canonizing
+// resource and scope attribute values into the same []any slice representation
+// used for log record attributes. The rationale is that from a log end user's
+// perspective it doesn't matter what level an attribute is in the OTel log data
+// model hierarchy, it's all flat anyway: so we don't want to clutter and
+// complicate the test DSL with several variants of what all seems to be just
+// attribute matchers. (From this end user's perspective and also looking at
+// prominent observability tooling, OpenTelemetry really did overdo by a wide
+// margin.)
+//
+// Canonize panics when any value encountered that is not one of the following
+// types:
 //   - bool
 //   - int and int64
 //   - float32 and float64
@@ -78,6 +91,7 @@ func anyMap(v log.Value) map[string]any {
 //   - []byte
 //   - []any
 //   - map[string]any
+//   - []bool, []int, []int64, []float32, []float64 and []string
 func Canonize(v any) any {
 	if v == nil {
 		return nil
@@ -101,6 +115,42 @@ func Canonize(v any) any {
 		sl := make([]any, len(v))
 		for idx, el := range v {
 			sl[idx] = Canonize(el)
+		}
+		return sl
+	case []bool:
+		sl := make([]any, len(v))
+		for idx := range v {
+			sl[idx] = v[idx]
+		}
+		return sl
+	case []int:
+		sl := make([]any, len(v))
+		for idx := range v {
+			sl[idx] = int64(v[idx])
+		}
+		return sl
+	case []int64:
+		sl := make([]any, len(v))
+		for idx := range v {
+			sl[idx] = v[idx]
+		}
+		return sl
+	case []float32:
+		sl := make([]any, len(v))
+		for idx := range v {
+			sl[idx] = float64(v[idx])
+		}
+		return sl
+	case []float64:
+		sl := make([]any, len(v))
+		for idx := range v {
+			sl[idx] = v[idx]
+		}
+		return sl
+	case []string:
+		sl := make([]any, len(v))
+		for idx := range v {
+			sl[idx] = v[idx]
 		}
 		return sl
 	case map[string]any:

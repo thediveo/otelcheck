@@ -15,12 +15,17 @@
 package lotel
 
 import (
+	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/log"
+	"go.opentelemetry.io/otel/sdk/instrumentation"
+	"go.opentelemetry.io/otel/sdk/log/logtest"
+	"go.opentelemetry.io/otel/sdk/resource"
 
 	"github.com/thediveo/otelcheck/lotel/logconv"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	ty "github.com/onsi/gomega/types"
 	. "github.com/thediveo/otelcheck/internal/iff"
 )
 
@@ -53,5 +58,47 @@ var _ = Describe("HaveAttribute(WithValue) matchers", func() {
 		Entry(nil, "foo", 42, 42, true),
 		Entry(nil, "foo", []any{"untruth", float32(123.0)}, []any{"untruth", float64(123.0)}, true),
 	)
+
+	DescribeTable("matches attributes in record, resource, scope",
+		func(m ty.GomegaMatcher, match bool) {
+			r := logtest.RecordFactory{
+				Resource: resource.NewWithAttributes("example.org/foobar",
+					attribute.KeyValue{Key: "resource.name", Value: attribute.StringValue("foobar")},
+					attribute.KeyValue{Key: "resource.zzz", Value: attribute.IntValue(12345)}),
+				InstrumentationScope: &instrumentation.Scope{
+					Attributes: attribute.NewSet(attribute.Int("scope.id", 42)),
+				},
+			}.NewRecord()
+			r.AddAttributes(log.String("foo", "bar"))
+			If(match, Assertion.To, Assertion.NotTo)(Expect(r), m)
+		},
+		Entry(nil, HaveAttribute("resource.name=foobar"), true),
+		Entry(nil, HaveAttribute("scope.id"), true),
+		Entry(nil, HaveAttributeWithValue("scope.id", 42), true),
+	)
+
+	DescribeTable("attribute matching error handling",
+		func(m ty.GomegaMatcher) {
+			r := logtest.RecordFactory{}.NewRecord()
+			r.AddAttributes(log.String("foo", "bar"))
+			Expect(m.Match(r)).Error().To(HaveOccurred())
+		},
+		Entry(nil, HaveAttribute(BeTrue())),
+	)
+
+	It("returns matching errors when trying to match resource and scope attributes", func() {
+		r := logtest.RecordFactory{
+			Resource: resource.NewWithAttributes("example.org/foobar",
+				attribute.KeyValue{Key: "resource.name", Value: attribute.StringValue("foobar")}),
+		}.NewRecord()
+		Expect(HaveAttribute(BeTrue()).Match(r)).Error().To(HaveOccurred())
+
+		r = logtest.RecordFactory{
+			InstrumentationScope: &instrumentation.Scope{
+				Attributes: attribute.NewSet(attribute.Int("scope.id", 42)),
+			},
+		}.NewRecord()
+		Expect(HaveAttribute(BeTrue()).Match(r)).Error().To(HaveOccurred())
+	})
 
 })

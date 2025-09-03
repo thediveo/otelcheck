@@ -29,7 +29,8 @@ import (
 )
 
 // HaveAttribute succeeds if an OpenTelemetry log record has the an attribute
-// with the specified key/name (and optional value).
+// with the specified key/name (and optional value), including matching resource
+// and instrumentation/scope-level attributes.
 //
 // The expected value passed into the attr parameter can be either a string or
 // [ty.GomegaMatcher]:
@@ -80,7 +81,8 @@ func HaveAttribute(attr any) ty.GomegaMatcher {
 }
 
 // HaveAttributeWithValue succeeds if an OpenTelemetry log record has an
-// attribute with the specified key/name and value.
+// attribute with the specified key/name and value, including matching resource
+// and instrumentation/scope-level attributes.
 //
 // The value passed into the name parameter can be either a string or a
 // [ty.GomegaMatcher].
@@ -122,11 +124,17 @@ func HaveAttributeWithValue(name, value any) ty.GomegaMatcher {
 
 }
 
+// HaveAttributeMatcher matches either all attributes of a [sdklog.Record]
+// (including resource and instrumentation scope attributes) or a [log.KeyValue]
+// against its spec. It allows matching against the name/key part only, or both
+// name/key and value matching.
+//
+// See also: [HaveAttribute] and [HaveAttributeWithValue].
 type HaveAttributeMatcher struct {
 	name         any
 	value        any
-	nameMatcher  ty.GomegaMatcher
-	valueMatcher ty.GomegaMatcher
+	nameMatcher  ty.GomegaMatcher // actual will be of type string
+	valueMatcher ty.GomegaMatcher // actual will be of type any (via logconv.Any)
 }
 
 var (
@@ -134,22 +142,27 @@ var (
 	_ ty.GomegaMatcher = (*HaveAttributeMatcher)(nil)
 )
 
-func (m *HaveAttributeMatcher) matchAttribute(attr log.KeyValue) (bool, error) {
+// matchAttribute is the optimized entry that succeeds if the passed name and
+// value match this attribute matcher's specification. matchAttribute is used
+// from both this matcher's Match method as well as from containsAttributes that
+// matches against the attributes at the different hierarchical levels of a
+// single log record.
+func (m *HaveAttributeMatcher) matchAttribute(name string, value any) (bool, error) {
 	if m.nameMatcher == nil {
 		return false, fmt.Errorf("HaveAttributeMatcher: name matcher must not be <nil>")
 	}
 	if m.value != nil && m.valueMatcher == nil {
-		return false, fmt.Errorf("HaveAttributeMatcher: expected value to match to be either string or types.GomegaMatcher.  Got:\n%T",
+		return false, fmt.Errorf("HaveAttributeMatcher: expected value to be non-nil or types.GomegaMatcher.  Got:\n%T",
 			m.value)
 	}
-	success, err := m.nameMatcher.Match(attr.Key)
+	success, err := m.nameMatcher.Match(name)
 	if err != nil || !success {
 		return false, err
 	}
 	if m.valueMatcher == nil { // no value to match, so we've found a matching attribute
 		return true, nil
 	}
-	return m.valueMatcher.Match(logconv.Any(attr.Value))
+	return m.valueMatcher.Match(value)
 }
 
 func (m *HaveAttributeMatcher) Match(actual any) (success bool, err error) {
@@ -158,14 +171,9 @@ func (m *HaveAttributeMatcher) Match(actual any) (success bool, err error) {
 	}
 	switch actual := actual.(type) {
 	case log.KeyValue:
-		return m.matchAttribute(actual)
+		return m.matchAttribute(actual.Key, logconv.Any(actual.Value))
 	case sdklog.Record:
-		for attr := range actual.WalkAttributes {
-			if success, err := m.matchAttribute(attr); err != nil || success {
-				return success, err
-			}
-		}
-		return false, nil
+		return containsAttributes(&actual, []attributeMatcher{m})
 	}
 	return false, fmt.Errorf("HaveAttribute expected actual of type <%T> or <%T>.  Got:\n%s",
 		log.KeyValue{}, sdklog.Record{}, format.Object(actual, 1))

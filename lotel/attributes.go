@@ -15,41 +15,90 @@
 package lotel
 
 import (
-	"go.opentelemetry.io/otel/log"
+	"slices"
+
+	"go.opentelemetry.io/otel/attribute"
 	sdklog "go.opentelemetry.io/otel/sdk/log"
+
+	intslices "github.com/thediveo/otelcheck/internal/slices"
+	"github.com/thediveo/otelcheck/lotel/logconv"
 
 	ty "github.com/onsi/gomega/types"
 )
 
 // attributeMatcher marks a Gomega matcher to match OTel log record attributes.
 type attributeMatcher interface {
-	// try to match a log record attribute (as opposed to matching a log
-	// record's resource or instrumentation/scope attribute).
-	matchAttribute(log.KeyValue) (bool, error)
+	// try to match an attribute by its name and any-fied/canonized value, where
+	// the attribute name/value might come from a log.KeyValue or resource/scope
+	// attribute.KeyValue.
+	matchAttribute(name string, value any) (bool, error)
 }
 
-// matchAllAttributes succeeds if the passed attribute matchers all match at
-// least some of the passed log record attributes.
-func matchAllAttributes(r *sdklog.Record, ms []attributeMatcher) (bool, error) {
-	ms = ms[:]
-nextAttr:
+// containsAttributes succeeds if all passed attribute matchers match on (some
+// of) the passed log record's attributes including resource and scope
+// attributes.
+func containsAttributes(r *sdklog.Record, attrms []attributeMatcher) (bool, error) {
+	attrms, err := removeMatchingMatchers(r.Resource().Set(), slices.Clone(attrms))
+	if err != nil {
+		return false, err
+	}
+	if len(attrms) == 0 {
+		return true, nil
+	}
+	attrs := r.InstrumentationScope().Attributes
+	attrms, err = removeMatchingMatchers(&attrs, attrms)
+	if err != nil {
+		return false, err
+	}
+	if len(attrms) == 0 {
+		return true, nil
+	}
+	// And now, esteemed brethren, we enter the last chance saloon...
+nextRecordAttribute:
 	for attr := range r.WalkAttributes /* sweet iterator */ {
-		if len(ms) == 0 {
+		if len(attrms) == 0 {
 			return true, nil
 		}
-		for midx, m := range ms {
-			success, err := m.matchAttribute(attr)
+		key := attr.Key
+		value := logconv.Any(attr.Value)
+		for midx, m := range attrms {
+			success, err := m.matchAttribute(key, value)
 			if err != nil {
 				return false, err
 			}
 			if success {
-				ms[midx] = ms[len(ms)-1]
-				ms = ms[:len(ms)-1]
-				continue nextAttr
+				attrms = intslices.DeleteUnordered(attrms, midx)
+				continue nextRecordAttribute
 			}
 		}
 	}
-	return len(ms) == 0, nil
+	return len(attrms) == 0, nil
+}
+
+// removeMatchingMatchers checks which attribute matchers match on the
+// passed attribute set and then returns only the "left-over" non-matching
+// matchers.
+func removeMatchingMatchers(attrs *attribute.Set, attrms []attributeMatcher) ([]attributeMatcher, error) {
+	it := attrs.Iter()
+nextAttribute:
+	for it.Next() {
+		if len(attrms) == 0 {
+			return attrms, nil
+		}
+		attr := it.Attribute()
+		value := logconv.Canonize(attr.Value.AsInterface())
+		for midx, m := range attrms {
+			success, err := m.matchAttribute(string(attr.Key), value)
+			if err != nil {
+				return nil, err
+			}
+			if success {
+				attrms = intslices.DeleteUnordered(attrms, midx)
+				continue nextAttribute
+			}
+		}
+	}
+	return attrms, nil
 }
 
 // separateAttributeMatchers separates a list of matchers into a list of

@@ -2,7 +2,7 @@
 
 [![PkgGoDev](https://img.shields.io/badge/-reference-blue?logo=go&logoColor=white&labelColor=505050)](https://pkg.go.dev/github.com/thediveo/otelcheck)
 [![License](https://img.shields.io/github/license/thediveo/otelcheck)](https://img.shields.io/github/license/thediveo/otelcheck)
-![Coverage](https://img.shields.io/badge/Coverage-92.3%25-brightgreen)
+![Coverage](https://img.shields.io/badge/Coverage-94.5%25-brightgreen)
 
 `otelcheck` (voiced with a proper [H
 aspiré](https://en.wikipedia.org/wiki/Aspirated_h) and tongue in cheek) provides
@@ -12,6 +12,8 @@ tests. This package is opinionated in that its OTel-specific DSL hides the
 complex and error-prone “structure field and method chasing” of the OTel
 SDK-internal data models so that test spec writers are able to focus on their
 (flat) mental model again.
+
+That is, `otelcheck` somewhat _undoes_ OTel's observability models _overdoing_.
 
 ## Contributing
 

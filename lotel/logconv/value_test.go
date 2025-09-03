@@ -59,10 +59,18 @@ var _ = Describe("log (key-)value conversions", func() {
 		Entry("float64", float64(42), float64(42)),
 		Entry("string", "foo", "foo"),
 		Entry("[]byte", []byte("foo"), []byte("foo")),
+
 		Entry("[]any", []any{"foo", 42, nil}, []any{"foo", int64(42), nil}),
 		Entry("map[string]any",
 			map[string]any{"foo": "bar", "baz": 42},
 			map[string]any{"foo": "bar", "baz": int64(42)}),
+
+		Entry("[]bool", []bool{true, false}, []any{true, false}),
+		Entry("[]int", []int{42, 666}, []any{int64(42), int64(666)}),
+		Entry("[]int64", []int64{42, 666}, []any{int64(42), int64(666)}),
+		Entry("[]float32", []float32{42, 666}, []any{float64(42), float64(666)}),
+		Entry("[]float64", []float64{42, 666}, []any{float64(42), float64(666)}),
+		Entry("[]string", []string{"foo", "bar"}, []any{"foo", "bar"}),
 	)
 
 	It("panics when canonizing fails", func() {

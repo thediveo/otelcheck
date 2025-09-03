@@ -33,7 +33,7 @@ func BeARecord(m ty.GomegaMatcher, ms ...ty.GomegaMatcher) ty.GomegaMatcher {
 				return false, err
 			}
 		}
-		return matchAllAttributes(&r, ams)
+		return containsAttributes(&r, ams)
 	}).WithTemplate("Expected:\n{{.FormattedActual}}\n{{.To}} match\n{{format .Data 1}}").
 		WithTemplateData(ms)
 }
