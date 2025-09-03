@@ -156,21 +156,19 @@ func (m *HaveAttributeMatcher) Match(actual any) (success bool, err error) {
 	if actual == nil {
 		return false, errors.New("refusing to match <nil>")
 	}
-	r, ok := actual.(sdklog.Record)
-	if ok {
-		for attr := range r.WalkAttributes {
+	switch actual := actual.(type) {
+	case log.KeyValue:
+		return m.matchAttribute(actual)
+	case sdklog.Record:
+		for attr := range actual.WalkAttributes {
 			if success, err := m.matchAttribute(attr); err != nil || success {
 				return success, err
 			}
 		}
 		return false, nil
 	}
-	attr, ok := actual.(log.KeyValue)
-	if !ok {
-		return false, fmt.Errorf("HaveAttribute expected actual of type <%T> or <%T>.  Got:\n%s",
-			log.KeyValue{}, sdklog.Record{}, format.Object(actual, 1))
-	}
-	return m.matchAttribute(attr)
+	return false, fmt.Errorf("HaveAttribute expected actual of type <%T> or <%T>.  Got:\n%s",
+		log.KeyValue{}, sdklog.Record{}, format.Object(actual, 1))
 }
 
 func (m *HaveAttributeMatcher) expected() string {
