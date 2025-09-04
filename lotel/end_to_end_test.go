@@ -16,6 +16,7 @@ package lotel
 
 import (
 	"context"
+	"time"
 
 	"github.com/thediveo/otelcheck/lotel/testlogger"
 	"go.opentelemetry.io/otel/log"
@@ -27,7 +28,8 @@ import (
 var _ = Describe("lotel e2e", func() {
 
 	It("asserts log records", func(ctx context.Context) {
-		l, ch := testlogger.New(10)
+		logger, shutdown, ch := testlogger.New(10)
+		defer shutdown(ctx)
 
 		go func() {
 			defer GinkgoRecover()
@@ -35,16 +37,34 @@ var _ = Describe("lotel e2e", func() {
 			r.SetEventName("org.foo")
 			r.AddAttributes(log.KeyValue{Key: "foo", Value: log.IntValue(42)},
 				log.KeyValue{Key: "bar", Value: log.StringValue("barf!")})
-			l.Emit(ctx, r)
+			logger.Emit(ctx, r)
+
+			r = log.Record{}
+			r.SetEventName("org.bar")
+			logger.Emit(ctx, r)
+
+			shutdown(ctx)
 		}()
 
 		Eventually(ch).Should(
 			Receive(BeARecord(
 				HaveEventName("org.foo"),
+				// assert not only log record attributes...
 				HaveAttributeWithValue("foo", 42),
 				HaveAttribute("bar=barf!"),
+				// ...but also resource and instrument/scope attributes.
+				HaveAttributeWithValue(testlogger.InstrumentationAttributeName, testlogger.InstrumentationAttributeValue),
+				HaveAttributeWithValue("service.name", HavePrefix("unknown_service:")),
 			)))
 
+		Eventually(ch).ShouldNot(
+			Receive(BeARecord(HaveEventName("org.bar"))))
+
+		// since we shut down the logger after having emitted all test log
+		// records, the following asynchronous assertion will fail quickly
+		// before its timeout.
+		Eventually(ch).WithTimeout(30 * time.Second).ShouldNot(
+			Receive(BeARecord(HaveEventName("org.barz"))))
 	})
 
 })

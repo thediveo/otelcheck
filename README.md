@@ -2,7 +2,7 @@
 
 [![PkgGoDev](https://img.shields.io/badge/-reference-blue?logo=go&logoColor=white&labelColor=505050)](https://pkg.go.dev/github.com/thediveo/otelcheck)
 [![License](https://img.shields.io/github/license/thediveo/otelcheck)](https://img.shields.io/github/license/thediveo/otelcheck)
-![Coverage](https://img.shields.io/badge/Coverage-94.5%25-brightgreen)
+![Coverage](https://img.shields.io/badge/Coverage-94.9%25-brightgreen)
 
 `otelcheck` (voiced with a proper [H
 aspiré](https://en.wikipedia.org/wiki/Aspirated_h) and tongue in cheek) provides

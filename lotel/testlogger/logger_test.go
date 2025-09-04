@@ -28,7 +28,7 @@ var _ = Describe("OTel test logger", func() {
 
 	It("automatically shuts down the processor and exporter, closing the record channel", func(ctx context.Context) {
 		var ch chanlog.RecordsChannel
-		DeferCleanup(func() {
+		defer func() {
 			By("end of test")
 			Expect(ch).To(HaveLen(1))
 			// drain the canary log record as otherwise BeClose() will fail:
@@ -36,8 +36,9 @@ var _ = Describe("OTel test logger", func() {
 			// element(s).
 			<-ch
 			Expect(ch).To(BeClosed())
-		})
-		l, ch := New(42)
+		}()
+		l, shutdown, ch := New(42)
+		defer shutdown(ctx)
 		r := log.Record{}
 		r.SetBody(log.StringValue("bah!"))
 		l.Emit(ctx, r)
