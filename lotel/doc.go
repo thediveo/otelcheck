@@ -1,4 +1,5 @@
 /*
-Package lotel provides Gomega matchers for reasoning about OTel log records.
+Package lotel provides Gomega matchers for reasoning about OpenTelemetry log
+records.
 */
 package lotel

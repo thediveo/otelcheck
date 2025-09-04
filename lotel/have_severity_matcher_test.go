@@ -25,7 +25,7 @@ import (
 
 var _ = Describe("HaveSeverity matcher", func() {
 
-	DescribeTable("matches severity levels, or not",
+	DescribeTable("matching severity levels, or not",
 		func(severity log.Severity, expected any, matches bool) {
 			r := logtest.RecordFactory{EventName: "foo"}.NewRecord()
 			r.SetSeverity(severity)
