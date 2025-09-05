@@ -20,7 +20,7 @@ import (
 	"go.opentelemetry.io/otel/attribute"
 	sdklog "go.opentelemetry.io/otel/sdk/log"
 
-	intslices "github.com/thediveo/otelcheck/internal/slices"
+	intslices "github.com/thediveo/otelcheck/x/slices"
 	"github.com/thediveo/otelcheck/lotel/logconv"
 
 	ty "github.com/onsi/gomega/types"

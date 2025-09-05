@@ -12,7 +12,7 @@
 // License for the specific language governing permissions and limitations
 // under the License.
 
-package iff
+package slices
 
 import (
 	"testing"
@@ -21,19 +21,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-func TestIff(t *testing.T) {
+func TestSlices(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "otelcheck/internal/iff")
+	RunSpecs(t, "otelcheck/x/slices")
 }
-
-var _ = Describe("iff", func() {
-
-	DescribeTable("iff truth",
-		func(b bool, truev, falsev int, expected any) {
-			Expect(If(b, truev, falsev)).To(Equal(expected))
-		},
-		Entry(nil, true, 42, 666, 42),
-		Entry(nil, false, 42, 666, 666),
-	)
-
-})
