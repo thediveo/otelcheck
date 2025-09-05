@@ -15,12 +15,17 @@
 package slices
 
 // DeleteUnordered removes the element s[i] from s in place and not preserving
-// the order of elements, returning the modified slice.
+// the order of elements, returning the modified slice. DeleteUnordered zeroes
+// the final slice element that has become unused and removes it from the
+// returned slice.
 //
 // See also [Go Wiki: SliceTricks, Delete without preserving order].
 //
-// [Go Wiki: SliceTricks, Delete without preserving order]: https://go.dev/wiki/SliceTricks#delete-without-preserving-order
+// [Go Wiki: SliceTricks, Delete without preserving order]:
+// https://go.dev/wiki/SliceTricks#delete-without-preserving-order
 func DeleteUnordered[S []E, E any](s S, i int) S {
 	s[i] = s[len(s)-1]
+	var zero E
+	s[len(s)-1] = zero
 	return s[:len(s)-1]
 }
