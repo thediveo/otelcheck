@@ -16,16 +16,21 @@ package lotel
 
 import (
 	"context"
+	"slices"
 	"time"
 
 	"github.com/thediveo/otelcheck/lotel/testlogger"
+	"github.com/thediveo/otelcheck/x/chans"
 	"go.opentelemetry.io/otel/log"
 
 	"github.com/onsi/gomega"
 )
 
-// This is a complete example showing how
-func Example() {
+// This is a complete example showing how to create a logger for testing
+// purposes, logging some records, collecting all log records, and then only
+// finally asserting the correct records have been received from the channel the
+// logger exports into.
+func Example_synchronous_assertions() {
 	/* only in testable example */ Ω := gomega.NewGomega(func(message string, _ ...int) { panic(message) })
 
 	// only in testable example,so when no suitable test context is at hand.
@@ -51,9 +56,12 @@ func Example() {
 		shutdown(ctx)
 	}()
 
+	// Wait for all records to arrive and collect them until the channel closes.
+	recs := slices.Collect(chans.All(ctx, ch))
+
 	// assert the log records...
-	Ω.Eventually(ch).Should(
-		gomega.Receive(BeARecord(
+	Ω.Expect(recs).To(gomega.ContainElements(
+		BeARecord(
 			HaveEventName("org.foo"),
 			// assert not only log record attributes...
 			HaveAttributeWithValue("foo", 42),
@@ -61,16 +69,12 @@ func Example() {
 			// ...but also resource and instrument/scope attributes.
 			HaveAttributeWithValue(testlogger.InstrumentationAttributeName, testlogger.InstrumentationAttributeValue),
 			HaveAttributeWithValue("service.name", gomega.HavePrefix("unknown_service:")),
-		)))
+		),
+		BeARecord(HaveEventName("org.bar")),
+	))
 
-	Ω.Eventually(ch).ShouldNot(
-		gomega.Receive(BeARecord(HaveEventName("org.bar"))))
-
-	// since we shut down the logger after having emitted all test log
-	// records, the following asynchronous assertion will pass quickly
-	// before its timeout.
-	Ω.Eventually(ch).WithTimeout(30 * time.Second).ShouldNot(
-		gomega.Receive(BeARecord(HaveEventName("org.barz"))))
+	Ω.Expect(recs).NotTo(
+		gomega.ContainElement(BeARecord(HaveEventName("org.barz"))))
 
 	// Output:
 }
