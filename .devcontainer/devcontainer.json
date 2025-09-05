@@ -9,6 +9,12 @@
     },
     "image": "mcr.microsoft.com/devcontainers/base:ubuntu-24.04",
     "features": {
+        // Github actions support and local deployment
+        "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {},
+        "ghcr.io/devcontainers/features/github-cli:1": {},
+        "ghcr.io/devcontainers-extra/features/act:1": {},
+        "ghcr.io/thediveo/devcontainer-features/pin-github-action:0": {},
+        // more Go development tooling
         "ghcr.io/thediveo/devcontainer-features/local-pkgsite:0": {},
         "ghcr.io/thediveo/devcontainer-features/goreportcard:0": {},
         "ghcr.io/thediveo/devcontainer-features/go-mod-upgrade:0": {},
@@ -17,8 +23,7 @@
             "race": true,
             "verbose": true,
             "html": true
-        },
-        "ghcr.io/thediveo/devcontainer-features/pin-github-action:0": {}
+        }
     },
     "remoteEnv": {
         "GOPATH": "/home/vscode/go",
@@ -31,7 +36,8 @@
                 "brunnerh.insert-unicode",
                 "mhutchie.git-graph",
                 "ms-vscode.makefile-tools",
-                "ms-vscode.live-server"
+                "ms-vscode.live-server",
+                "SanjulaGanepola.github-local-actions"
             ]
         }
     }

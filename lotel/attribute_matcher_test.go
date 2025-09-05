@@ -26,7 +26,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	ty "github.com/onsi/gomega/types"
-	. "github.com/thediveo/otelcheck/internal/iff"
+	. "github.com/thediveo/otelcheck/x/iff"
 )
 
 var _ = Describe("HaveAttribute(WithValue) matchers", func() {

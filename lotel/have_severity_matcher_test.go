@@ -20,7 +20,7 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	. "github.com/thediveo/otelcheck/internal/iff"
+	. "github.com/thediveo/otelcheck/x/iff"
 )
 
 var _ = Describe("HaveSeverity matcher", func() {

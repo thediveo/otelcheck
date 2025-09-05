@@ -12,28 +12,24 @@
 // License for the specific language governing permissions and limitations
 // under the License.
 
-package iff
+package chans_test
 
 import (
-	"testing"
+	"context"
+	"fmt"
+	"slices"
 
-	. "github.com/onsi/ginkgo/v2"
-	. "github.com/onsi/gomega"
+	"github.com/thediveo/otelcheck/x/chans"
 )
 
-func TestIff(t *testing.T) {
-	RegisterFailHandler(Fail)
-	RunSpecs(t, "otelcheck/internal/iff")
+func ExampleAll() {
+	ch := make(chan int, 5)
+	go func() {
+		for i := range 5 {
+			ch <- i
+		}
+		close(ch)
+	}()
+	fmt.Println(slices.Collect(chans.All(context.Background(), ch)))
+	// Output: [0 1 2 3 4]
 }
-
-var _ = Describe("iff", func() {
-
-	DescribeTable("iff truth",
-		func(b bool, truev, falsev int, expected any) {
-			Expect(If(b, truev, falsev)).To(Equal(expected))
-		},
-		Entry(nil, true, 42, 666, 42),
-		Entry(nil, false, 42, 666, 666),
-	)
-
-})
