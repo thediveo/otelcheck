@@ -22,7 +22,7 @@ import (
 
 var _ = Describe("metrics indices", func() {
 
-	It("rejects the same metric with differing aggregations", func() {
+	It("rejects the same-name metrics with differing aggregations", func() {
 		rms := []*metricdata.ResourceMetrics{
 			{
 				ScopeMetrics: []metricdata.ScopeMetrics{
